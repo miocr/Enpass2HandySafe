@@ -14,10 +14,8 @@ namespace Enpass2HandySafe
 {
     class Program
     {
-        static List<string> ignoredFolders = new List<string>() { "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c" };
-        static KeyValuePair<string, string> defaultFolder =
-            new KeyValuePair<string, string>("xxxx-xxxx-xxxx-xxxx", "Default");
-
+        static List<string> ignoredFolders = new List<string>()
+        { "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c" };
 
         static void Main(string[] args)
         {
@@ -31,7 +29,6 @@ namespace Enpass2HandySafe
                 Enpass enpass = JsonConvert.DeserializeObject<Enpass>(jsonData);
 
                 Dictionary<string, string> enpassFolders = new Dictionary<string, string>();
-                enpassFolders.Add(defaultFolder.Key, defaultFolder.Value);
                 foreach (EnpassModel.Folder enpassFolder in enpass.Folders)
                 {
                     if (ignoredFolders.Contains(enpassFolder.Uuid))
@@ -39,91 +36,53 @@ namespace Enpass2HandySafe
                     enpassFolders.Add(enpassFolder.Uuid, enpassFolder.Title);
                 }
 
-                // Fix pro items, ktere nejsou v zadne kategorii, zaradime do default
-                /*
-                foreach (var item in enpass.Items)
+                HandySafe handySafe = new HandySafe()
                 {
-                    if (item.Folders == null || item.Folders.Length == 0)
-                    {
-                        item.Folders = new string[1] { defaultFolder.Key };
-                    }
-                }
-                */
+                    Folders = new List<HandySafeModel.Folder>()
+                };
 
                 // Items nezarazene do zadneho folder
-                var uncategorizedItems = enpass.Items.Where(i => i.Folders?.Length == 0);
-                foreach (var uncategorizedItem in uncategorizedItems)
+                var enpassUncategorizedItems = enpass.Items.Where(i => i.Folders == null || i.Folders.Length == 0);
+                if (enpassUncategorizedItems.Count() > 0)
                 {
-                    Console.WriteLine(uncategorizedItem.Title);
+                    HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
+                    {
+                        Name = "Nezarazeno",
+                        Cards = new List<Card>()
+                    };
+                    handySafe.Folders.Add(hsFolder); 
+
+                    foreach (var enpassUncategorizedItem in enpassUncategorizedItems)
+                    {
+                        Console.WriteLine("Nezarazeno: " + enpassUncategorizedItem.Title);
+                        HandySafeModel.Card hsCard = ConvertItemToCard(enpassUncategorizedItem);
+                        hsFolder.Cards.Add(hsCard);
+                    }
+
                 }
 
                 foreach (KeyValuePair<string, string> enpassFolder in enpassFolders)
                 {
-                    var folderItems = enpass.Items
-                        .Where(i => i.Folders?.Length > 0 && i.Folders.ToList()
-                        .Contains(enpassFolder.Key));
-
-                    foreach (var folderItem in folderItems)
+                    HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
                     {
-                        Console.WriteLine(folderItem.Title);
-                    }
-                }
-
-                HandySafe handySafe = new HandySafe();
-                List<HandySafeModel.Folder> hsFolders = new List<HandySafeModel.Folder>();
-
-                HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
-                {
-                    Name = "MainFolder",
-                    Id = "1"
-                };
-
-                hsFolders.Add(hsFolder);
-
-                List<HandySafeModel.Card> hsCards = new List<Card>();
-
-                foreach (EnpassModel.Item enpassItem in enpass.Items)
-                {
-                    List<HandySafeModel.Field> hsFields = new List<HandySafeModel.Field>();
-                    foreach (EnpassModel.Field enpassField in enpassItem.Fields)
-                    {
-                        if (String.IsNullOrEmpty(enpassField.Value))
-                        {
-                            continue;
-                        }
-
-                        HandySafeModel.Field hsField = new HandySafeModel.Field()
-                        {
-                            Name = enpassField.Label,
-                            Value = enpassField.Value
-                        };
-
-                        int? fieldType = MapFieldType(enpassField);
-                        if (fieldType.HasValue)
-                        {
-                            hsField.Type = fieldType.ToString();
-                        }
-
-                        hsFields.Add(hsField);
-                    }
-
-                    HandySafeModel.Card hsCard = new HandySafeModel.Card()
-                    {
-                        Name = enpassItem.Title,
-                        Fields = hsFields
+                        Name = enpassFolder.Value,
+                        Cards = new List<Card>()
                     };
-                    // Add note 
-                    if (!String.IsNullOrEmpty(enpassItem.Note))
+
+                    var enpassFolderItems = enpass.Items
+                        .Where(i => i.Folders != null &&
+                        i.Folders.ToList().Contains(enpassFolder.Key));
+
+                    foreach (var enpassItem in enpassFolderItems)
                     {
-                        hsCard.Note = enpassItem.Note.Replace("|", System.Environment.NewLine);
+                        Console.WriteLine(hsFolder.Name + ": " + enpassItem.Title);
+                        HandySafeModel.Card hsCard = ConvertItemToCard(enpassItem);
+                        hsFolder.Cards.Add(hsCard);
                     }
 
-                    hsCards.Add(hsCard);
+                    handySafe.Folders.Add(hsFolder);
+
                 }
-
-                hsFolder.Cards = hsCards;
-
-                handySafe.Folders = hsFolders;
 
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(HandySafeModel.HandySafe));
 
@@ -135,6 +94,48 @@ namespace Enpass2HandySafe
             {
                 Console.WriteLine(ex.Message);
             }
+        }
+
+        private static HandySafeModel.Card ConvertItemToCard(EnpassModel.Item enpassItem)
+        {
+            List<HandySafeModel.Field> hsFields = new List<HandySafeModel.Field>();
+            foreach (EnpassModel.Field enpassField in enpassItem.Fields)
+            {
+                if (String.IsNullOrEmpty(enpassField.Value))
+                {
+                    continue;
+                }
+
+                HandySafeModel.Field hsField = new HandySafeModel.Field()
+                {
+                    Name = enpassField.Label,
+                    Value = enpassField.Value
+                };
+
+                int? fieldType = MapFieldType(enpassField);
+                if (fieldType.HasValue)
+                {
+                    hsField.Type = fieldType.ToString();
+                }
+
+                hsFields.Add(hsField);
+            }
+
+            HandySafeModel.Card hsCard = new HandySafeModel.Card()
+            {
+                Name = enpassItem.Title,
+                Fields = hsFields
+            };
+
+            // Pokud existuje poznamka, pridame ji a znak | na nove radky
+            if (!String.IsNullOrEmpty(enpassItem.Note))
+            {
+                hsCard.Note = enpassItem.Note;//.Replace("|", System.Environment.NewLine);
+                hsCard.Note = enpassItem.Note.Replace(System.Environment.NewLine, " | ");
+            }
+
+
+            return hsCard;
         }
 
         private static int? MapFieldType(EnpassModel.Field enpassField)
