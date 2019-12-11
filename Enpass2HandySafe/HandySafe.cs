@@ -33,6 +33,9 @@ namespace Enpass2HandySafe.HandySafeModel
 
         [XmlElement("Field")]
         public List<Field> Fields;
+
+        [XmlElement("Note")]
+        public string Note;
     }
 
     public class Field

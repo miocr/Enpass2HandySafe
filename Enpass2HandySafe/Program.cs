@@ -87,12 +87,23 @@ namespace Enpass2HandySafe
                     List<HandySafeModel.Field> hsFields = new List<HandySafeModel.Field>();
                     foreach (EnpassModel.Field enpassField in enpassItem.Fields)
                     {
+                        if (String.IsNullOrEmpty(enpassField.Value))
+                        {
+                            continue;
+                        }
+
                         HandySafeModel.Field hsField = new HandySafeModel.Field()
                         {
                             Name = enpassField.Label,
-                            Type = enpassField.Type,
                             Value = enpassField.Value
                         };
+
+                        int? fieldType = MapFieldType(enpassField);
+                        if (fieldType.HasValue)
+                        {
+                            hsField.Type = fieldType.ToString();
+                        }
+
                         hsFields.Add(hsField);
                     }
 
@@ -101,6 +112,11 @@ namespace Enpass2HandySafe
                         Name = enpassItem.Title,
                         Fields = hsFields
                     };
+                    // Add note 
+                    if (!String.IsNullOrEmpty(enpassItem.Note))
+                    {
+                        hsCard.Note = enpassItem.Note.Replace("|", System.Environment.NewLine);
+                    }
 
                     hsCards.Add(hsCard);
                 }
@@ -119,6 +135,38 @@ namespace Enpass2HandySafe
             {
                 Console.WriteLine(ex.Message);
             }
+        }
+
+        private static int? MapFieldType(EnpassModel.Field enpassField)
+        {
+            int? hsFieldType = null;
+            /*
+             * nic text
+             * 1   number
+             * 2   telefon
+             * 3   datum
+             * 6   sesitive text
+             */
+            if (enpassField.Sensitive == 1)
+            {
+                hsFieldType = 6;
+            }
+            else
+            {
+                switch (enpassField.Type)
+                {
+                    case "numeric":
+                        hsFieldType = 1;
+                        break;
+                    case "phone":
+                        hsFieldType = 2;
+                        break;
+                    case "date":
+                        hsFieldType = 3;
+                        break;
+                }
+            }
+            return hsFieldType;
         }
     }
 }
