@@ -20,8 +20,6 @@ namespace Enpass2HandySafe
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-
             string jsonData = File.ReadAllText("/Users/macwhite/Desktop/all.json");
             try
             {
@@ -57,7 +55,7 @@ namespace Enpass2HandySafe
 
                     foreach (var enpassUncategorizedItem in enpassUncategorizedItems)
                     {
-                        Console.WriteLine("Nezarazeno: " + enpassUncategorizedItem.Title);
+                        Console.WriteLine(hsFolder.Name + ": " + enpassUncategorizedItem.Title);
                         HandySafeModel.Card hsCard = ConvertItemToCard(enpassUncategorizedItem);
                         hsFolder.Cards.Add(hsCard);
                     }
