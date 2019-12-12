@@ -14,8 +14,9 @@ namespace Enpass2HandySafe
 {
     class Program
     {
-        static List<string> ignoredFolders = new List<string>()
-        { "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c" };
+        static List<string> ignoredFolders = new List<string>(){
+            "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c"
+        };
 
         static void Main(string[] args)
         {
@@ -32,7 +33,9 @@ namespace Enpass2HandySafe
                 foreach (EnpassModel.Folder enpassFolder in enpass.Folders)
                 {
                     if (ignoredFolders.Contains(enpassFolder.Uuid))
+                    {
                         continue;
+                    }
                     enpassFolders.Add(enpassFolder.Uuid, enpassFolder.Title);
                 }
 
@@ -41,13 +44,13 @@ namespace Enpass2HandySafe
                     Folders = new List<HandySafeModel.Folder>()
                 };
 
-                // Items nezarazene do zadneho folder
+                // Items nezarazene do zadneho folder (Tag)
                 var enpassUncategorizedItems = enpass.Items.Where(i => i.Folders == null || i.Folders.Length == 0);
                 if (enpassUncategorizedItems.Count() > 0)
                 {
                     HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
                     {
-                        Name = "Nezarazeno",
+                        Name = "Nezařazeno",
                         Cards = new List<Card>()
                     };
                     handySafe.Folders.Add(hsFolder); 
@@ -58,9 +61,9 @@ namespace Enpass2HandySafe
                         HandySafeModel.Card hsCard = ConvertItemToCard(enpassUncategorizedItem);
                         hsFolder.Cards.Add(hsCard);
                     }
-
                 }
 
+                // Items zařazené do nějakého folder (Tag)
                 foreach (KeyValuePair<string, string> enpassFolder in enpassFolders)
                 {
                     HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
@@ -81,7 +84,6 @@ namespace Enpass2HandySafe
                     }
 
                     handySafe.Folders.Add(hsFolder);
-
                 }
 
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(HandySafeModel.HandySafe));
@@ -96,6 +98,9 @@ namespace Enpass2HandySafe
             }
         }
 
+        /// <summary>
+        /// Převede Enpass Item na HandySafe Card
+        /// </summary>
         private static HandySafeModel.Card ConvertItemToCard(EnpassModel.Item enpassItem)
         {
             List<HandySafeModel.Field> hsFields = new List<HandySafeModel.Field>();
@@ -138,11 +143,14 @@ namespace Enpass2HandySafe
             return hsCard;
         }
 
+        /// <summary>
+        /// Převede Enpass typ položky na HandySafe typ položky
+        /// </summary>
         private static int? MapFieldType(EnpassModel.Field enpassField)
         {
             int? hsFieldType = null;
             /*
-             * nic text
+             * nic prostý text
              * 1   number
              * 2   telefon
              * 3   datum
