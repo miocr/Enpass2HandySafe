@@ -39,12 +39,21 @@ namespace Enpass2HandySafe.EnpassModel
     }
 
     [JsonObject]
+    public class Image
+    {
+        [JsonProperty]
+        public string File { get; set; }
+    }
+
+    [JsonObject]
     public class Icon
     {
         [JsonProperty]
         public string Fav { get; set; }
         [JsonProperty]
         public string Type { get; set; }
+        [JsonProperty]
+        public Image Image { get; set; }
     }
 
     [JsonObject]

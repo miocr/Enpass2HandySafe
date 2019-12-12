@@ -16,19 +16,19 @@ namespace Enpass2HandySafe.HandySafeModel
         [XmlElement("Card")]
         public List<Card> Cards;
 
-        [XmlAttribute]
+        [XmlAttribute("name")]
         public string Name;
 
-        [XmlAttribute]
+        [XmlAttribute("id")]
         public string Id;
     }
 
     public class Card
     {
-        [XmlAttribute]
+        [XmlAttribute("name")]
         public string Name;
 
-        [XmlAttribute]
+        [XmlAttribute("icon")]
         public string Icon;
 
         [XmlElement("Field")]
@@ -40,10 +40,10 @@ namespace Enpass2HandySafe.HandySafeModel
 
     public class Field
     {
-        [XmlAttribute]
+        [XmlAttribute("name")]
         public string Name { get; set; }
 
-        [XmlAttribute]
+        [XmlAttribute("type")]
         public string Type { get; set; }
 
         [XmlText]

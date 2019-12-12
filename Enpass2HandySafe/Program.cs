@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Collections.Generic;
+using System.Xml;
 using System.Xml.Serialization;
 
 using Enpass2HandySafe.EnpassModel;
@@ -18,9 +19,13 @@ namespace Enpass2HandySafe
             "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c"
         };
 
+        static string inputFile = @"/Users/macwhite/Desktop/all.json";
+
+        static string outputFile = @"/Users/macwhite/Desktop/all-converted.xml";
+
         static void Main(string[] args)
         {
-            string jsonData = File.ReadAllText("/Users/macwhite/Desktop/all.json");
+            string jsonData = File.ReadAllText(inputFile);
             try
             {
                 JsonSerializerSettings settings = new JsonSerializerSettings();
@@ -86,9 +91,17 @@ namespace Enpass2HandySafe
 
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(HandySafeModel.HandySafe));
 
-                TextWriter tw = new StreamWriter(@"/Users/macwhite/Desktop/all-converted.xml");
-                xmlSerializer.Serialize(tw, handySafe);
+                var emptyNamespaces = new XmlSerializerNamespaces(new[] { XmlQualifiedName.Empty });
+                var xmlWriterSettings = new XmlWriterSettings();
+                xmlWriterSettings.Indent = true;
+                xmlWriterSettings.OmitXmlDeclaration = true;
 
+                // using (TextWriter tw = new StreamWriter(@"/Users/macwhite/Desktop/all-converted.xml"))
+
+                using (var xw = XmlWriter.Create(outputFile, xmlWriterSettings))
+                {
+                    xmlSerializer.Serialize(xw, handySafe, emptyNamespaces);
+                }
             }
             catch (Exception ex)
             {
@@ -102,31 +115,36 @@ namespace Enpass2HandySafe
         private static HandySafeModel.Card ConvertItemToCard(EnpassModel.Item enpassItem)
         {
             List<HandySafeModel.Field> hsFields = new List<HandySafeModel.Field>();
-            foreach (EnpassModel.Field enpassField in enpassItem.Fields)
+            if (enpassItem.Fields != null)
             {
-                if (String.IsNullOrEmpty(enpassField.Value))
+                foreach (EnpassModel.Field enpassField in enpassItem.Fields)
                 {
-                    continue;
+                    if (String.IsNullOrEmpty(enpassField.Value))
+                    {
+                        continue;
+                    }
+
+                    HandySafeModel.Field hsField = new HandySafeModel.Field()
+                    {
+                        Name = enpassField.Label,
+                        Value = enpassField.Value
+                    };
+
+                    int? fieldType = MapFieldType(enpassField);
+                    if (fieldType.HasValue)
+                    {
+                        hsField.Type = fieldType.ToString();
+                    }
+
+                    hsFields.Add(hsField);
                 }
-
-                HandySafeModel.Field hsField = new HandySafeModel.Field()
-                {
-                    Name = enpassField.Label,
-                    Value = enpassField.Value
-                };
-
-                int? fieldType = MapFieldType(enpassField);
-                if (fieldType.HasValue)
-                {
-                    hsField.Type = fieldType.ToString();
-                }
-
-                hsFields.Add(hsField);
             }
 
+            int hsIcon = MapIcon(enpassItem);
             HandySafeModel.Card hsCard = new HandySafeModel.Card()
             {
                 Name = enpassItem.Title,
+                Icon = hsIcon.ToString(),
                 Fields = hsFields
             };
 
@@ -139,6 +157,50 @@ namespace Enpass2HandySafe
 
 
             return hsCard;
+        }
+
+        private static int MapIcon(EnpassModel.Item enpassItem)
+        {
+            int hsIcon = 33; // default
+            if (enpassItem?.Icon?.Image?.File != null)
+            {
+                switch (enpassItem.Icon.Image.File)
+                {
+                    case "misc/bank":
+                    case "misc/finance":
+                        hsIcon = 1; // money
+                        break;
+                    case "misc/user":
+                        //hsIcon = 6; // person
+                        hsIcon = 8; // identity card 
+                        break;
+                    case "misc/secure_note":
+                        hsIcon = 17; // note
+                        break;
+                    case "misc/software_license":
+                    case "misc/driving_license_1":
+                    case "misc/driving_license_2":
+                        hsIcon = 21; // licence card
+                        break;
+                    case "misc/login":
+                        hsIcon = 19; // Key
+                        break;
+                    case "misc/passport":
+                        hsIcon = 25; // globe
+                        //hsIcon = 31; // Globe with Pin
+                        break;
+                    case "cc/others":
+                        //hsIcon = 32; // EC card
+                        hsIcon = 33; // VISA
+                        break;
+                    case "misc/briefcase":
+                        //hsIcon = 74; // computer
+                        //hsIcon = 10;  //folder
+                        hsIcon = 5; // lock
+                        break;
+                }
+            }
+            return hsIcon;
         }
 
         /// <summary>
