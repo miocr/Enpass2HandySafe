@@ -161,7 +161,7 @@ namespace Enpass2HandySafe
 
         private static int MapIcon(EnpassModel.Item enpassItem)
         {
-            int hsIcon = 33; // default
+            int hsIcon = 5; // default
             if (enpassItem?.Icon?.Image?.File != null)
             {
                 switch (enpassItem.Icon.Image.File)
@@ -194,7 +194,6 @@ namespace Enpass2HandySafe
                         hsIcon = 33; // VISA
                         break;
                     case "misc/briefcase":
-                        //hsIcon = 74; // computer
                         //hsIcon = 10;  //folder
                         hsIcon = 5; // lock
                         break;
