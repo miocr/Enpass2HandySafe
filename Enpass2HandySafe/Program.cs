@@ -48,7 +48,9 @@ namespace Enpass2HandySafe
                 };
 
                 // Items nezarazene do zadneho folder (Tag)
-                var enpassUncategorizedItems = enpass.Items.Where(i => i.Folders == null || i.Folders.Length == 0);
+                IEnumerable<EnpassModel.Item> enpassUncategorizedItems = enpass.Items
+                    .Where(i => i.Folders == null || i.Folders.Length == 0);
+                    
                 if (enpassUncategorizedItems.Count() > 0)
                 {
                     HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
@@ -58,7 +60,7 @@ namespace Enpass2HandySafe
                     };
                     handySafe.Folders.Add(hsFolder); 
 
-                    foreach (var enpassUncategorizedItem in enpassUncategorizedItems)
+                    foreach (EnpassModel.Item enpassUncategorizedItem in enpassUncategorizedItems)
                     {
                         Console.WriteLine(hsFolder.Name + ": " + enpassUncategorizedItem.Title);
                         HandySafeModel.Card hsCard = ConvertItemToCard(enpassUncategorizedItem);
@@ -75,14 +77,14 @@ namespace Enpass2HandySafe
                         Cards = new List<Card>()
                     };
 
-                    var enpassFolderItems = enpass.Items
+                    IEnumerable<EnpassModel.Item> enpassFolderItems = enpass.Items
                         .Where(i => i.Folders != null &&
                         i.Folders.ToList().Contains(enpassFolder.Key));
 
-                    foreach (var enpassItem in enpassFolderItems)
+                    foreach (EnpassModel.Item enpassFolderItem in enpassFolderItems)
                     {
-                        Console.WriteLine(hsFolder.Name + ": " + enpassItem.Title);
-                        HandySafeModel.Card hsCard = ConvertItemToCard(enpassItem);
+                        Console.WriteLine(hsFolder.Name + ": " + enpassFolderItem.Title);
+                        HandySafeModel.Card hsCard = ConvertItemToCard(enpassFolderItem);
                         hsFolder.Cards.Add(hsCard);
                     }
 
@@ -91,14 +93,14 @@ namespace Enpass2HandySafe
 
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(HandySafeModel.HandySafe));
 
-                var emptyNamespaces = new XmlSerializerNamespaces(new[] { XmlQualifiedName.Empty });
-                var xmlWriterSettings = new XmlWriterSettings();
+                XmlSerializerNamespaces emptyNamespaces = new XmlSerializerNamespaces(new[] { XmlQualifiedName.Empty });
+                XmlWriterSettings xmlWriterSettings = new XmlWriterSettings();
                 xmlWriterSettings.Indent = true;
                 xmlWriterSettings.OmitXmlDeclaration = true;
 
                 // using (TextWriter tw = new StreamWriter(@"/Users/macwhite/Desktop/all-converted.xml"))
 
-                using (var xw = XmlWriter.Create(outputFile, xmlWriterSettings))
+                using (XmlWriter xw = XmlWriter.Create(outputFile, xmlWriterSettings))
                 {
                     xmlSerializer.Serialize(xw, handySafe, emptyNamespaces);
                 }
