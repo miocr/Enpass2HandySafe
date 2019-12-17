@@ -10,13 +10,15 @@ using System.Xml.Serialization;
 using Enpass2HandySafe.EnpassModel;
 using Enpass2HandySafe.HandySafeModel;
 
-
+// Convert Enpass6 items exported to json format to HandySafe 1.2 xml format 
 namespace Enpass2HandySafe
 {
     class Program
     {
-        static List<string> ignoredFolders = new List<string>(){
-            "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c"
+        
+        // Optional - list of ignored enpass categories (Tags), items will be skiped
+        static List<string> enpassIgnoredFolders = new List<string>(){
+            "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c",
         };
 
         static string inputFile = @"/Users/macwhite/Desktop/all.json";
@@ -25,21 +27,24 @@ namespace Enpass2HandySafe
 
         static void Main(string[] args)
         {
-            string jsonData = File.ReadAllText(inputFile);
             try
             {
-                JsonSerializerSettings settings = new JsonSerializerSettings();
+                if (!File.Exists(inputFile))
+                {
+                    throw new Exception($"Input file '{inputFile}' not found.");
+                }
 
+                string jsonData = File.ReadAllText(inputFile);
+                JsonSerializerSettings settings = new JsonSerializerSettings();
                 Enpass enpass = JsonConvert.DeserializeObject<Enpass>(jsonData);
 
                 Dictionary<string, string> enpassFolders = new Dictionary<string, string>();
                 foreach (EnpassModel.Folder enpassFolder in enpass.Folders)
                 {
-                    if (ignoredFolders.Contains(enpassFolder.Uuid))
+                    if (!enpassIgnoredFolders.Contains(enpassFolder.Uuid))
                     {
-                        continue;
+                        enpassFolders.Add(enpassFolder.Uuid, enpassFolder.Title);
                     }
-                    enpassFolders.Add(enpassFolder.Uuid, enpassFolder.Title);
                 }
 
                 HandySafe handySafe = new HandySafe()
@@ -47,10 +52,10 @@ namespace Enpass2HandySafe
                     Folders = new List<HandySafeModel.Folder>()
                 };
 
-                // Items nezarazene do zadneho folder (Tag)
+                // Items without Tag (uncategorized)
                 IEnumerable<EnpassModel.Item> enpassUncategorizedItems = enpass.Items
                     .Where(i => i.Folders == null || i.Folders.Length == 0);
-                    
+
                 if (enpassUncategorizedItems.Count() > 0)
                 {
                     HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
@@ -58,7 +63,7 @@ namespace Enpass2HandySafe
                         Name = "Nezařazeno",
                         Cards = new List<Card>()
                     };
-                    handySafe.Folders.Add(hsFolder); 
+                    handySafe.Folders.Add(hsFolder);
 
                     foreach (EnpassModel.Item enpassUncategorizedItem in enpassUncategorizedItems)
                     {
@@ -68,7 +73,7 @@ namespace Enpass2HandySafe
                     }
                 }
 
-                // Items zařazené do nějakého folder (Tag)
+                // Items with Tag (categorized)
                 foreach (KeyValuePair<string, string> enpassFolder in enpassFolders)
                 {
                     HandySafeModel.Folder hsFolder = new HandySafeModel.Folder()
@@ -98,8 +103,6 @@ namespace Enpass2HandySafe
                 xmlWriterSettings.Indent = true;
                 xmlWriterSettings.OmitXmlDeclaration = true;
 
-                // using (TextWriter tw = new StreamWriter(@"/Users/macwhite/Desktop/all-converted.xml"))
-
                 using (XmlWriter xw = XmlWriter.Create(outputFile, xmlWriterSettings))
                 {
                     xmlSerializer.Serialize(xw, handySafe, emptyNamespaces);
@@ -112,7 +115,7 @@ namespace Enpass2HandySafe
         }
 
         /// <summary>
-        /// Převede Enpass Item na HandySafe Card
+        /// Convert Enpass Item to HandySafe Card
         /// </summary>
         private static HandySafeModel.Card ConvertItemToCard(EnpassModel.Item enpassItem)
         {
@@ -150,17 +153,19 @@ namespace Enpass2HandySafe
                 Fields = hsFields
             };
 
-            // Pokud existuje poznamka, pridame ji a znak | na nove radky
+            // Add Note in enpassItem do hsCard and replace newline 
             if (!String.IsNullOrEmpty(enpassItem.Note))
             {
                 hsCard.Note = enpassItem.Note;//.Replace("|", System.Environment.NewLine);
                 hsCard.Note = enpassItem.Note.Replace(System.Environment.NewLine, " | ");
             }
 
-
             return hsCard;
         }
 
+        /// <summary>
+        /// Map Enpass icon (from item) to HandySafe icon (in card)
+        /// </summary>
         private static int MapIcon(EnpassModel.Item enpassItem)
         {
             int hsIcon = 5; // default
@@ -205,16 +210,16 @@ namespace Enpass2HandySafe
         }
 
         /// <summary>
-        /// Převede Enpass typ položky na HandySafe typ položky
+        /// Map Enpass field Type to HandySafe field Type 
         /// </summary>
         private static int? MapFieldType(EnpassModel.Field enpassField)
         {
             int? hsFieldType = null;
             /*
-             * nic prostý text
+             * -   plain text (field without Type attribute)
              * 1   number
-             * 2   telefon
-             * 3   datum
+             * 2   phone
+             * 3   date
              * 6   sesitive text
              */
             if (enpassField.Sensitive == 1)
