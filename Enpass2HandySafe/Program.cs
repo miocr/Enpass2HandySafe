@@ -21,9 +21,9 @@ namespace Enpass2HandySafe
             "dd032f9a-2bf5-42cf-a17f-47ab87e05b1c",
         };
 
-        static string inputFile = @"/Users/macwhite/Desktop/all.json";
+        static string inputFile = @"/Users/xxxxx/Desktop/all.json";
 
-        static string outputFile = @"/Users/macwhite/Desktop/all-converted.xml";
+        static string outputFile = @"/Users/xxxxx/Desktop/all-converted.xml";
 
         static void Main(string[] args)
         {
